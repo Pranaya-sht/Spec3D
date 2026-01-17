@@ -10,6 +10,9 @@ export class Visualizer {
     }
 
     createVisualizerBars(count: number, radius: number) {
+        // Clear existing bars first
+        this.clear();
+
         // 1. Geometry
         // We use BoxGeometry for each bar.
         // Initial size: width, height, depth.
@@ -67,5 +70,18 @@ export class Visualizer {
             this.group.add(bar);
             this.meshes.push(bar);
         }
+    }
+
+    clear() {
+        this.meshes.forEach(mesh => {
+            mesh.geometry.dispose();
+            if (Array.isArray(mesh.material)) {
+                mesh.material.forEach(m => m.dispose());
+            } else {
+                (mesh.material as THREE.Material).dispose();
+            }
+            this.group.remove(mesh);
+        });
+        this.meshes = [];
     }
 }
