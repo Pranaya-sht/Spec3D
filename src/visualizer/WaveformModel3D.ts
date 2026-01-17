@@ -9,7 +9,6 @@ export class WaveformModel3D {
     private infoPanel: HTMLDivElement;
     private graphCanvas: HTMLCanvasElement;
     private graphCtx: CanvasRenderingContext2D;
-    private currentTime: number = 0;
     private spreadFactor: number = 1.0;
     private isPlaying: boolean = false;
 
@@ -212,7 +211,6 @@ export class WaveformModel3D {
     updatePlayback(currentTime: number, isPlaying: boolean) {
         if (!this.audioBuffer || !this.progressIndicator) return;
 
-        this.currentTime = currentTime;
         this.isPlaying = isPlaying;
 
         const duration = this.audioBuffer.duration;
@@ -234,7 +232,7 @@ export class WaveformModel3D {
         this.drawGraph(currentTime);
 
         // Update info panel with current time
-        this.updatePlaybackInfo(currentTime, duration);
+        this.updatePlaybackInfo(currentTime);
     }
 
     private drawGraph(currentTime: number) {
@@ -329,7 +327,7 @@ export class WaveformModel3D {
     `;
     }
 
-    private updatePlaybackInfo(currentTime: number, duration: number) {
+    private updatePlaybackInfo(currentTime: number) {
         const timeElement = document.getElementById('current-time');
         if (timeElement) {
             timeElement.textContent = this.formatTime(currentTime);
@@ -358,6 +356,18 @@ export class WaveformModel3D {
         }
         this.waveformLine = null;
         this.progressIndicator = null;
+    }
+
+    getProgressPosition(): THREE.Vector3 {
+        return this.progressIndicator ? this.progressIndicator.position.clone() : new THREE.Vector3();
+    }
+
+    setPosition(x: number, y: number, z: number) {
+        this.group.position.set(x, y, z);
+    }
+
+    setRotation(x: number, y: number, z: number) {
+        this.group.rotation.set(x, y, z);
     }
 
     setSpread(spread: number) {

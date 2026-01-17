@@ -8,6 +8,7 @@ import { WaveformVisualizer } from './visualizer/WaveformVisualizer';
 import { FrequencyGraph } from './visualizer/FrequencyGraph';
 import { PolarGrid } from './visualizer/PolarGrid';
 import { WaveformModel3D } from './visualizer/WaveformModel3D';
+import { FourierVisualizer } from './visualizer/FourierVisualizer';
 
 // --- Phase 1: Project Setup & Basic Scene ---
 
@@ -62,6 +63,7 @@ const waveformViz = new WaveformVisualizer();
 const frequencyGraph = new FrequencyGraph();
 const polarGrid = new PolarGrid(scene);
 const waveformModel = new WaveformModel3D(scene);
+const fourierVisualizer = new FourierVisualizer(scene);
 
 // Initial setup
 let BAR_COUNT = educationalUI.settings.barCount;
@@ -166,22 +168,56 @@ const animate = () => {
   controls.autoRotate = educationalUI.settings.autoRotate;
   controls.update();
 
-  // Mode switching: Real-time vs 3D Model
+  // Mode switching: Real-time vs 3D Model vs Fourier View
   const isModelMode = educationalUI.settings.visualizationMode === '3d-model';
+  const isFourierMode = educationalUI.settings.visualizationMode === 'fourier-view';
 
   if (isModelMode) {
     // 3D Model Mode: Show dynamic waveform, hide real-time bars
     visualizer.meshes.forEach(mesh => mesh.visible = false);
     waveformModel.show();
+    fourierVisualizer.hide();
 
     // Update waveform animation with current playback time
     const currentTime = audioController.getCurrentTime();
     const isPlaying = audioController.isPlaying();
     waveformModel.updatePlayback(currentTime, isPlaying);
+  } else if (isFourierMode) {
+    // Fourier View Mode
+    visualizer.meshes.forEach(mesh => mesh.visible = false);
+
+    // Integration: If a model exists, show it
+    if (waveformModel.getAudioInfo()) {
+      waveformModel.show();
+      // Model stays centered as the "ground"
+      waveformModel.setPosition(0, 0, 0);
+      waveformModel.setRotation(0, 0, 0);
+
+      // sync model playback
+      const currentTime = audioController.getCurrentTime();
+      const isPlaying = audioController.isPlaying();
+      waveformModel.updatePlayback(currentTime, isPlaying);
+
+      // STATIC LAB POSITION: Pull back further for the expanded environment
+      fourierVisualizer.setPosition(0, 10, 40);
+      fourierVisualizer.setRotation(0, 0, 0);
+
+      const progPos = waveformModel.getProgressPosition();
+      const timeData = audioController.getTimeDomainData();
+      const freqData = audioController.getFrequencyData();
+
+      fourierVisualizer.show();
+      fourierVisualizer.update(timeData, freqData, progPos);
+    } else {
+      waveformModel.hide();
+      fourierVisualizer.hide();
+    }
   } else {
     // Real-time Mode: Show frequency bars, hide 3D model
     visualizer.meshes.forEach(mesh => mesh.visible = true);
     waveformModel.hide();
+    waveformModel.setRotation(0, 0, 0);
+    fourierVisualizer.hide();
 
     // Phase 4: Real-Time Rendering Pipeline
     const frequencyData = audioController.getFrequencyData();
