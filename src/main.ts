@@ -183,13 +183,30 @@ const animate = () => {
     visualizer.meshes.forEach(mesh => mesh.visible = true);
     waveformModel.hide();
 
-    // Phase 4: Real-Time Rendering Pipeline
+    // Phase 4: Real-Time Rendering Pipeline (Upgraded: Average Sampling)
     const frequencyData = audioController.getFrequencyData();
-    const step = Math.floor(frequencyData.length / BAR_COUNT);
+    const totalBins = frequencyData.length;
 
     visualizer.meshes.forEach((mesh, index) => {
-      const dataIndex = index * step;
-      const value = frequencyData[dataIndex];
+      // Calculate the range of bins this bar represents
+      // This ensures every single bin is accounted for, even if they don't divide perfectly
+      const startBin = Math.floor((index / BAR_COUNT) * totalBins);
+      const endBin = Math.floor(((index + 1) / BAR_COUNT) * totalBins);
+
+      let value = 0;
+
+      // If bins > bars (Downsampling): Average the values in the range
+      if (endBin > startBin) {
+        let sum = 0;
+        for (let i = startBin; i < endBin; i++) {
+          sum += frequencyData[i];
+        }
+        value = sum / (endBin - startBin);
+      }
+      // If bars >= bins (Upsampling): Just take the nearest bin value
+      else {
+        value = frequencyData[startBin] || 0;
+      }
 
       // Geometric Transformation
       const intensity = value / 255.0;

@@ -106,7 +106,7 @@ export class EducationalUI {
 
         // Geometry Settings
         const geoFolder = this.gui.addFolder('Geometry Settings');
-        geoFolder.add(this.settings, 'barCount', 16, 128, 1)
+        geoFolder.add(this.settings, 'barCount', 16, 1024, 1) // Increased max to 1024
             .name('Bar Count')
             .onChange(() => {
                 this.updateInfo('Bar count changed. More bars = smoother circle distribution.');
@@ -116,6 +116,27 @@ export class EducationalUI {
             .onChange(() => {
                 this.updateInfo('Radius changed. Affects polar coordinate calculation: x = r·cos(θ), z = r·sin(θ)');
             });
+
+        // Debug Settings
+        const debugFolder = this.gui.addFolder('Debug Analysis');
+        const debugObj = {
+            logData: () => {
+                if (this.audioController) {
+                    const data = this.audioController.getFrequencyData();
+                    console.log('--- Frequency Data Snapshot ---');
+                    console.log('Total Bins:', data.length);
+                    console.log('Raw Values (0-255):', data);
+
+                    // Log first few bins specifically
+                    console.log('Bass Bins (First 10):', data.slice(0, 10));
+                    this.updateInfo('Logged current frequency data to Console (F12)');
+                } else {
+                    this.updateInfo('Audio Controller not ready');
+                }
+            }
+        };
+        debugFolder.add(debugObj, 'logData').name('Log Data to Console');
+        debugFolder.open();
 
         // Stats (FPS counter)
         this.stats = new Stats();
