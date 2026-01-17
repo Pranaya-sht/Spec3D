@@ -11,7 +11,7 @@ export interface EducationalSettings {
     barCount: number;
     radius: number;
     autoRotate: boolean;
-    visualizationMode: 'realtime' | '3d-model';
+    visualizationMode: 'realtime' | '3d-model' | 'fourier-view';
     waveformSpread: number;
 }
 
@@ -74,12 +74,14 @@ export class EducationalUI {
 
         // Visualization Mode Toggle
         const modeFolder = this.gui.addFolder('Visualization Mode');
-        modeFolder.add(this.settings, 'visualizationMode', ['realtime', '3d-model'])
+        modeFolder.add(this.settings, 'visualizationMode', ['realtime', '3d-model', 'fourier-view'])
             .name('Mode')
             .onChange((value: string) => {
-                this.updateInfo(value === 'realtime' ?
-                    'REALTIME MODE: Live audio visualization' :
-                    '3D MODEL MODE: Static waveform model (upload file to generate)');
+                let msg = '';
+                if (value === 'realtime') msg = 'REALTIME MODE: Live audio visualization';
+                else if (value === '3d-model') msg = '3D MODEL MODE: Static waveform model (upload file to generate)';
+                else if (value === 'fourier-view') msg = 'FOURIER VIEW: 3D decomposition of waveform into sine waves';
+                this.updateInfo(msg);
             });
         modeFolder.open();
 
