@@ -8,8 +8,7 @@ export class WaveformModel3D {
     private progressIndicator: THREE.Mesh | null = null;
     private audioBuffer: AudioBuffer | null = null;
     private infoPanel: HTMLDivElement;
-    private graphCanvas: HTMLCanvasElement;
-    private graphCtx: CanvasRenderingContext2D;
+    private currentTime: number = 0;
     private spreadFactor: number = 1.0;
     private isPlaying: boolean = false;
 
@@ -19,11 +18,6 @@ export class WaveformModel3D {
 
         // Create info panel
         this.infoPanel = this.createInfoPanel();
-
-        // Create 2D graph canvas
-        const { canvas, ctx } = this.createGraphCanvas();
-        this.graphCanvas = canvas;
-        this.graphCtx = ctx;
     }
 
     private createInfoPanel(): HTMLDivElement {
@@ -44,25 +38,6 @@ export class WaveformModel3D {
         panel.style.boxShadow = '0 0 20px rgba(0, 255, 0, 0.3)';
         document.body.appendChild(panel);
         return panel;
-    }
-
-    private createGraphCanvas(): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D } {
-        const canvas = document.createElement('canvas');
-        canvas.width = 800; // Wider
-        canvas.height = 200; // Taller
-        canvas.style.position = 'absolute';
-        canvas.style.bottom = '10px';
-        canvas.style.right = '10px';
-        canvas.style.border = '2px solid #00ff00';
-        canvas.style.background = 'rgba(0, 0, 0, 0.9)';
-        canvas.style.borderRadius = '8px';
-        canvas.style.zIndex = '1000';
-        canvas.style.display = 'none';
-        canvas.style.boxShadow = '0 0 20px rgba(0, 255, 0, 0.3)';
-        document.body.appendChild(canvas);
-
-        const ctx = canvas.getContext('2d')!;
-        return { canvas, ctx };
     }
 
     async loadAudioFile(file: File, audioContext: AudioContext): Promise<void> {
@@ -222,7 +197,7 @@ export class WaveformModel3D {
         }
     }
 
-    // Update animation based on audio playback time
+    // Simplified update loop (Graph removed)
     updatePlayback(currentTime: number, isPlaying: boolean) {
         if (!this.audioBuffer || !this.progressIndicator) return;
 
@@ -232,7 +207,7 @@ export class WaveformModel3D {
         const progress = currentTime / duration;
 
         // Move progress indicator
-        const length = 60;
+        const length = 60 * this.spreadFactor;
         const x = progress * length - length / 2;
         this.progressIndicator.position.x = x;
 
@@ -243,76 +218,8 @@ export class WaveformModel3D {
         const amplitudeScale = 6;
         this.progressIndicator.position.y = sample * amplitudeScale;
 
-        // Update 2D graph
-        this.drawGraph(currentTime);
-
         // Update info panel with current time
         this.updatePlaybackInfo(currentTime);
-    }
-
-    private drawGraph(currentTime: number) {
-        if (!this.audioBuffer) return;
-
-        const ctx = this.graphCtx;
-        const width = this.graphCanvas.width;
-        const height = this.graphCanvas.height;
-
-        // Clear
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
-        ctx.fillRect(0, 0, width, height);
-
-        // Draw title
-        ctx.fillStyle = '#00ff00';
-        ctx.font = 'bold 14px monospace';
-        ctx.fillText('REAL-TIME FREQUENCY SPECTRUM', 10, 20);
-
-        // Get current frequency data (simplified FFT)
-        const channelData = this.audioBuffer.getChannelData(0);
-        const sampleRate = this.audioBuffer.sampleRate;
-        const windowSize = 2048;
-        const startSample = Math.floor((currentTime / this.audioBuffer.duration) * channelData.length);
-
-        // Perform simple FFT approximation
-        const fftBins = 32; // Reduced from 64 for more spread out bars
-        const spectrum = new Array(fftBins).fill(0);
-
-        for (let i = 0; i < fftBins; i++) {
-            const freqStart = startSample + i * (windowSize / fftBins);
-            const freqEnd = Math.min(freqStart + (windowSize / fftBins), channelData.length);
-
-            let sum = 0;
-            for (let j = freqStart; j < freqEnd; j++) {
-                sum += Math.abs(channelData[Math.floor(j)] || 0);
-            }
-            spectrum[i] = sum / (freqEnd - freqStart);
-        }
-
-        // Normalize
-        const max = Math.max(...spectrum, 0.01);
-
-        // Draw spectrum bars with more spacing
-        const barWidth = (width / fftBins) - 4; // More spacing between bars
-        const graphHeight = height - 50;
-
-        for (let i = 0; i < fftBins; i++) {
-            const barHeight = (spectrum[i] / max) * graphHeight;
-            const x = i * (width / fftBins) + 2; // Add offset for spacing
-            const y = height - barHeight - 15;
-
-            // Gradient color
-            const hue = (i / fftBins) * 120; // Green to cyan
-            ctx.fillStyle = `hsl(${hue + 120}, 100%, 50%)`;
-            ctx.fillRect(x, y, barWidth, barHeight);
-        }
-
-        // Draw frequency labels
-        ctx.fillStyle = '#00ff00';
-        ctx.font = '10px monospace';
-        ctx.fillText('0 Hz', 5, height - 2);
-        ctx.fillText(`${(sampleRate / 2).toFixed(0)} Hz`, width - 60, height - 2);
-        ctx.fillText('Low', width / 4, height - 2);
-        ctx.fillText('Mid', width / 2, height - 2);
-        ctx.fillText('High', 3 * width / 4, height - 2);
     }
 
     private updateInfoPanel(filename: string) {
@@ -337,7 +244,7 @@ export class WaveformModel3D {
       </div>
       <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid #00ff00; font-size: 10px; color: #0f0;">
         🔴 Red sphere = Current playback position<br>
-        📊 Bottom-right = Live frequency spectrum
+        Use Spread slider to stretch waveform
       </div>
     `;
     }
@@ -415,19 +322,16 @@ export class WaveformModel3D {
     show() {
         this.group.visible = true;
         this.infoPanel.style.display = 'block';
-        this.graphCanvas.style.display = 'block';
     }
 
     hide() {
         this.group.visible = false;
         this.infoPanel.style.display = 'none';
-        this.graphCanvas.style.display = 'none';
     }
 
     clear() {
         this.clearMeshes();
         this.infoPanel.style.display = 'none';
-        this.graphCanvas.style.display = 'none';
     }
 
     getAudioInfo(): { duration: number; sampleRate: number; channels: number } | null {
