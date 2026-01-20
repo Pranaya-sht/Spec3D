@@ -9,12 +9,13 @@ export class FourierVisualizer {
 
     private complexWaveformLine!: THREE.Line;
     private depthArrow!: THREE.ArrowHelper;
+    private hitArea: THREE.Mesh | null = null;
     private spectrumBars: THREE.Mesh[] = [];
     private sineWaves: THREE.Line[] = [];
 
     private readonly planeSize = 50;
     private readonly planeDistance = 60;
-    private readonly barCount = 48;
+    private barCount: number = 48; // Initial default
 
     constructor(scene: THREE.Scene) {
         this.group = new THREE.Group();
@@ -37,33 +38,84 @@ export class FourierVisualizer {
         this.hide();
     }
 
+    public updateBarCount(count: number) {
+        if (this.barCount === count) return;
+        this.barCount = count;
+        this.clearComponents();
+        this.setupComponents();
+    }
+
+    private clearComponents() {
+        // Clear spectrum bars
+        this.spectrumBars.forEach(bar => {
+            this.frequencyPlane.remove(bar);
+            bar.geometry.dispose();
+            (bar.material as THREE.Material).dispose();
+        });
+        this.spectrumBars = [];
+
+        // Clear sine waves
+        this.sineWaves.forEach(wave => {
+            this.sineWavesGroup.remove(wave);
+            wave.geometry.dispose();
+            (wave.material as THREE.Material).dispose();
+        });
+        this.sineWaves = [];
+    }
+
     private setupPlanes() {
-        // Vertical walls receding into depth (Z-axis)
-        const planeGeom = new THREE.PlaneGeometry(this.planeSize, this.planeSize);
-        const planeMat = new THREE.MeshBasicMaterial({
-            color: 0x222222,
+        // --- TIME PLANE (Red Frame) ---
+        const timeFrameGeom = new THREE.BoxGeometry(this.planeSize, this.planeSize, 1);
+        const timeFrameMat = new THREE.MeshStandardMaterial({
+            color: 0xff0000,
             transparent: true,
-            opacity: 0.3,
+            opacity: 0.2,
             side: THREE.DoubleSide
         });
+        const timePlaneMesh = new THREE.Mesh(timeFrameGeom, timeFrameMat);
 
-        // Time Plane (Front Wall at Z = 0)
-        const timePlaneMesh = new THREE.Mesh(planeGeom, planeMat);
-        timePlaneMesh.position.z = 0;
+        // Red border/frame
+        const timeEdgeGeom = new THREE.EdgesGeometry(timeFrameGeom);
+        const timeEdgeMat = new THREE.LineBasicMaterial({ color: 0xff4444, linewidth: 3 });
+        const timeEdges = new THREE.LineSegments(timeEdgeGeom, timeEdgeMat);
+
         this.timePlane.add(timePlaneMesh);
+        this.timePlane.add(timeEdges);
 
-        // Frequency Plane (Back Wall at Z = Depth)
-        const freqPlaneMesh = new THREE.Mesh(planeGeom, planeMat);
+        // Hit area for dragging
+        const hitGeom = new THREE.PlaneGeometry(this.planeSize, this.planeSize);
+        const hitMat = new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide });
+        this.hitArea = new THREE.Mesh(hitGeom, hitMat);
+        this.hitArea.name = 'fourier-time-hit';
+        this.timePlane.add(this.hitArea);
+
+        // --- FREQUENCY PLANE (Blue Frame) ---
+        const freqFrameGeom = new THREE.BoxGeometry(this.planeSize, this.planeSize, 1);
+        const freqFrameMat = new THREE.MeshStandardMaterial({
+            color: 0x0000ff,
+            transparent: true,
+            opacity: 0.2,
+            side: THREE.DoubleSide
+        });
+        const freqPlaneMesh = new THREE.Mesh(freqFrameGeom, freqFrameMat);
         freqPlaneMesh.position.z = this.planeDistance;
-        this.frequencyPlane.add(freqPlaneMesh);
 
-        // Grid helpers (rotated to be vertical walls)
-        const gridHelperFront = new THREE.GridHelper(this.planeSize, 20, 0x444444, 0x222222);
+        // Blue border/frame
+        const freqEdgeGeom = new THREE.EdgesGeometry(freqFrameGeom);
+        const freqEdgeMat = new THREE.LineBasicMaterial({ color: 0x4444ff, linewidth: 3 });
+        const freqEdges = new THREE.LineSegments(freqEdgeGeom, freqEdgeMat);
+        freqEdges.position.z = this.planeDistance;
+
+        this.frequencyPlane.add(freqPlaneMesh);
+        this.frequencyPlane.add(freqEdges);
+
+        // Grid helpers
+        const gridHelperFront = new THREE.GridHelper(this.planeSize, 10, 0xff0000, 0x440000);
         gridHelperFront.rotation.x = Math.PI / 2;
         gridHelperFront.position.z = 0;
         this.timePlane.add(gridHelperFront);
 
-        const gridHelperBack = new THREE.GridHelper(this.planeSize, 20, 0x444444, 0x222222);
+        const gridHelperBack = new THREE.GridHelper(this.planeSize, 10, 0x0000ff, 0x000044);
         gridHelperBack.rotation.x = Math.PI / 2;
         gridHelperBack.position.z = this.planeDistance;
         this.frequencyPlane.add(gridHelperBack);
@@ -74,7 +126,7 @@ export class FourierVisualizer {
         const complexGeom = new THREE.BufferGeometry();
         const complexPositions = new Float32Array(512 * 3);
         complexGeom.setAttribute('position', new THREE.BufferAttribute(complexPositions, 3));
-        const complexMat = new THREE.LineBasicMaterial({ color: 0x8800ff, linewidth: 3 }); // Purple highlight
+        const complexMat = new THREE.LineBasicMaterial({ color: 0x00ffff, linewidth: 3 }); // Vibrant Cyan for visibility
         this.complexWaveformLine = new THREE.Line(complexGeom, complexMat);
         this.timePlane.add(this.complexWaveformLine);
 
@@ -114,9 +166,10 @@ export class FourierVisualizer {
 
     private getFrequencyColor(index: number): number {
         const ratio = index / this.barCount;
-        if (ratio < 0.2) return 0xff4400; // Bass: Red/Orange
-        if (ratio < 0.6) return 0xccff00; // Mids: Lime/Yellow
-        return 0x00aaff; // Treble: Cyan/Blue
+        // Gradient from Red (Bass) to Blue (Treble)
+        const r = Math.floor((1 - ratio) * 255);
+        const b = Math.floor(ratio * 255);
+        return (r << 16) | b;
     }
 
     private setupLabels() {
@@ -157,16 +210,51 @@ export class FourierVisualizer {
         ring.rotation.x = Math.PI / 2;
         ring.position.set(0, -this.planeSize / 2, 0);
         this.timePlane.add(ring);
+
+        // 3. Labels "TIME" and "FREQUENCY" - Moved to TOP for better visibility
+        this.addTextLabel('TIME', 0xff0000, new THREE.Vector3(0, this.planeSize / 2 + 5, 0), this.timePlane);
+        this.addTextLabel('FREQUENCY', 0x0000ff, new THREE.Vector3(0, this.planeSize / 2 + 5, this.planeDistance), this.frequencyPlane);
     }
 
-    update(timeData: Uint8Array, freqData: Uint8Array, trackingPosition: THREE.Vector3) {
+    private addTextLabel(text: string, color: number, position: THREE.Vector3, parent: THREE.Group) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512; // Increased resolution
+        canvas.height = 256;
+        const ctx = canvas.getContext('2d')!;
+        ctx.fillStyle = 'rgba(0,0,0,0)';
+        ctx.fillRect(0, 0, 512, 256);
+        ctx.font = 'bold 80px Arial'; // Much bigger font
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        // Shadow for better legibility
+        ctx.shadowColor = 'rgba(0,0,0,0.5)';
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetX = 5;
+        ctx.shadowOffsetY = 5;
+
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 6;
+        ctx.strokeText(text, 256, 128);
+        ctx.fillStyle = `#${color.toString(16).padStart(6, '0')}`;
+        ctx.fillText(text, 256, 128);
+
+        const texture = new THREE.CanvasTexture(canvas);
+        const material = new THREE.SpriteMaterial({ map: texture });
+        const sprite = new THREE.Sprite(material);
+        sprite.scale.set(16, 8, 1); // Larger sprite
+        sprite.position.copy(position);
+        parent.add(sprite);
+    }
+
+    update(timeData: Uint8Array, freqData: Uint8Array, trackingPosition: THREE.Vector3, currentTime: number) {
         if (!this.group.visible) return;
 
         // Convert world tracking position to local coordinates of the fourier group
         const localTrackingPos = this.group.worldToLocal(trackingPosition.clone());
 
-        // Move the front wall (Time Plane) to the tracking position
-        this.timePlane.position.copy(localTrackingPos);
+        // Move the front wall (Time Plane) to the tracking position - LOCK Y TO 0
+        this.timePlane.position.set(localTrackingPos.x, 0, localTrackingPos.z);
 
         // Update Dynamic Depth Arrow
         this.depthArrow.position.set(0, -this.planeSize / 2, localTrackingPos.z);
@@ -217,7 +305,8 @@ export class FourierVisualizer {
 
                 // Amplitude projection along the path - scaled for larger space
                 const amp = val * (this.planeSize / 3) * t;
-                const waveY = Math.sin(t * frequency * Math.PI * 2 + Date.now() * 0.005) * amp;
+                // STABLE ANIMATION: Use currentTime instead of Date.now() to stop vibrating when paused
+                const waveY = Math.sin(t * frequency * Math.PI * 2 + currentTime * 5) * amp;
 
                 sinePositions[j * 3] = x;
                 sinePositions[j * 3 + 1] = yPos + waveY;
@@ -246,5 +335,16 @@ export class FourierVisualizer {
 
     hide() {
         this.group.visible = false;
+    }
+
+    getHitArea(): THREE.Mesh | null {
+        return this.hitArea;
+    }
+
+    calculateProgressFromPoint(point: THREE.Vector3): number {
+        const localPoint = this.group.worldToLocal(point.clone());
+        // Z axis is the depth axis here
+        let progress = localPoint.z / this.planeDistance;
+        return Math.min(Math.max(progress, 0), 1);
     }
 }

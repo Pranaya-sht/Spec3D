@@ -4,6 +4,7 @@ import * as THREE from 'three';
 export class WaveformModel3D {
     private group: THREE.Group;
     private waveformLine: THREE.Line | null = null;
+    private hitArea: THREE.Mesh | null = null;
     private progressIndicator: THREE.Mesh | null = null;
     private audioBuffer: AudioBuffer | null = null;
     private infoPanel: HTMLDivElement;
@@ -131,6 +132,9 @@ export class WaveformModel3D {
         this.waveformLine = new THREE.Line(geometry, material);
         this.group.add(this.waveformLine);
 
+        // Add a transparent hit area for easier raycasting
+        this.createHitArea(length, amplitudeScale);
+
         // Add progress indicator (moving sphere)
         this.createProgressIndicator(length, amplitudeScale);
 
@@ -138,6 +142,17 @@ export class WaveformModel3D {
         this.addReadableGrid(length, amplitudeScale);
 
         console.log(`[WaveformModel3D] Generated ${points.length} points`);
+    }
+
+    private createHitArea(length: number, amplitudeScale: number) {
+        const geometry = new THREE.PlaneGeometry(length, amplitudeScale * 2);
+        const material = new THREE.MeshBasicMaterial({
+            visible: false, // Keep it invisible
+            side: THREE.DoubleSide
+        });
+        this.hitArea = new THREE.Mesh(geometry, material);
+        this.hitArea.name = 'waveform-hit-area';
+        this.group.add(this.hitArea);
     }
 
     private createProgressIndicator(length: number, amplitudeScale: number) {
@@ -355,7 +370,24 @@ export class WaveformModel3D {
             }
         }
         this.waveformLine = null;
+        this.hitArea = null;
         this.progressIndicator = null;
+    }
+
+    // Helper to get the hit area mesh for raycasting
+    getHitArea(): THREE.Mesh | null {
+        return this.hitArea;
+    }
+
+    // Calculate 0-1 progress from a world-space point on the hit area
+    calculateProgressFromPoint(point: THREE.Vector3): number {
+        // Convert world point to local point
+        const localPoint = this.group.worldToLocal(point.clone());
+        const length = 60 * this.spreadFactor;
+
+        // Map local x (-length/2 to length/2) to progress (0 to 1)
+        let progress = (localPoint.x + length / 2) / length;
+        return Math.min(Math.max(progress, 0), 1);
     }
 
     getProgressPosition(): THREE.Vector3 {

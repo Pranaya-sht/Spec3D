@@ -65,6 +65,94 @@ const polarGrid = new PolarGrid(scene);
 const waveformModel = new WaveformModel3D(scene);
 const fourierVisualizer = new FourierVisualizer(scene);
 
+// --- Phase 5: Interaction & Scrubbing ---
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+let isDragging = false;
+
+const onMouseMove = (event: MouseEvent) => {
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+  if (isDragging) {
+    // Determine which one we are dragging based on current mode if ambiguous,
+    // but better to just check both or remember which one was clicked.
+    // For simplicity, we check which mode we are in.
+    if (educationalUI.settings.visualizationMode === 'fourier-view') {
+      handleScrubbing('fourier');
+    } else {
+      handleScrubbing('waveform');
+    }
+  }
+};
+
+const onMouseDown = (event: MouseEvent) => {
+  if (educationalUI.settings.visualizationMode === 'realtime') return;
+
+  raycaster.setFromCamera(mouse, activeCamera);
+
+  // Check waveform model hit area
+  const waveformHitArea = waveformModel.getHitArea();
+  let intersects = waveformHitArea ? raycaster.intersectObject(waveformHitArea) : [];
+
+  if (intersects.length > 0) {
+    isDragging = true;
+    controls.enabled = false;
+    handleScrubbing('waveform');
+    return;
+  }
+
+  // Check fourier visualizer hit area
+  const fourierHitArea = fourierVisualizer.getHitArea();
+  intersects = fourierHitArea ? raycaster.intersectObject(fourierHitArea) : [];
+
+  if (intersects.length > 0) {
+    isDragging = true;
+    controls.enabled = false;
+    handleScrubbing('fourier');
+    return;
+  }
+};
+
+const onMouseUp = () => {
+  isDragging = false;
+  controls.enabled = true; // Re-enable orbit controls
+};
+
+const handleScrubbing = (type: 'waveform' | 'fourier') => {
+  raycaster.setFromCamera(mouse, activeCamera);
+
+  if (type === 'waveform') {
+    const hitArea = waveformModel.getHitArea();
+    if (!hitArea) return;
+    const intersects = raycaster.intersectObject(hitArea);
+    if (intersects.length > 0) {
+      const progress = waveformModel.calculateProgressFromPoint(intersects[0].point);
+      seekAudio(progress);
+    }
+  } else {
+    const hitArea = fourierVisualizer.getHitArea();
+    if (!hitArea) return;
+    const intersects = raycaster.intersectObject(hitArea);
+    if (intersects.length > 0) {
+      const progress = fourierVisualizer.calculateProgressFromPoint(intersects[0].point);
+      seekAudio(progress);
+    }
+  }
+};
+
+const seekAudio = (progress: number) => {
+  const audioInfo = waveformModel.getAudioInfo();
+  if (audioInfo) {
+    const seekTime = progress * audioInfo.duration;
+    audioController.seek(seekTime);
+  }
+};
+
+window.addEventListener('mousemove', onMouseMove);
+window.addEventListener('mousedown', onMouseDown);
+window.addEventListener('mouseup', onMouseUp);
+
 // Initial setup
 let BAR_COUNT = educationalUI.settings.barCount;
 let RADIUS = educationalUI.settings.radius;
@@ -129,6 +217,7 @@ const animate = () => {
     RADIUS = educationalUI.settings.radius;
     visualizer.createVisualizerBars(BAR_COUNT, RADIUS);
     polarGrid.create(RADIUS, BAR_COUNT);
+    fourierVisualizer.updateBarCount(BAR_COUNT);
     previousBarCount = BAR_COUNT;
     previousRadius = RADIUS;
   }
@@ -186,9 +275,15 @@ const animate = () => {
     // Fourier View Mode
     visualizer.meshes.forEach(mesh => mesh.visible = false);
 
-    // Integration: If a model exists, show it
+    // Integration: If a model exists, manage its visibility
     if (waveformModel.getAudioInfo()) {
-      waveformModel.show();
+      if (educationalUI.settings.showModelInFourier) {
+        waveformModel.show();
+      } else {
+        waveformModel.hide();
+        // Exception: Even if model is hidden, we might want the spectrum/info hidden? 
+        // No, the user said "remove the 3d model", so hide the whole instance is safer.
+      }
       // Model stays centered as the "ground"
       waveformModel.setPosition(0, 0, 0);
       waveformModel.setRotation(0, 0, 0);
@@ -207,7 +302,7 @@ const animate = () => {
       const freqData = audioController.getFrequencyData();
 
       fourierVisualizer.show();
-      fourierVisualizer.update(timeData, freqData, progPos);
+      fourierVisualizer.update(timeData, freqData, progPos, currentTime);
     } else {
       waveformModel.hide();
       fourierVisualizer.hide();

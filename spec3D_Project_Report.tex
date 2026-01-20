@@ -1,0 +1,280 @@
+\documentclass[12pt,a4paper]{report}
+
+% --- Packages ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{mathptmx} % Sets font to Times New Roman (matches reference)
+\usepackage{graphicx}
+\usepackage{geometry}
+\usepackage{setspace}
+\usepackage{titlesec}
+\usepackage{tocloft}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+
+% --- Page Layout ---
+\geometry{
+    top=1in,
+    bottom=1in,
+    left=1.25in, % Slightly larger left margin for binding (standard report format)
+    right=1in
+}
+
+% --- Hyperlink Setup ---
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    filecolor=black,      
+    urlcolor=blue,
+    pdftitle={spec3D Project Report},
+}
+
+% --- Chapter Title Formatting ---
+\titleformat{\chapter}[hang]
+{\normalfont\huge\bfseries}{\chaptertitlename\ \thechapter}{20pt}{\Huge}
+\titlespacing*{\chapter}{0pt}{-30pt}{20pt}
+
+% --- Section Formatting ---
+\titleformat{\section}
+{\normalfont\Large\bfseries}{\thesection}{1em}{}
+
+\titleformat{\subsection}
+{\normalfont\large\bfseries}{\thesubsection}{1em}{}
+
+% --- Begin Document ---
+\begin{document}
+
+% =========================================================================
+% TITLE PAGE
+% =========================================================================
+\begin{titlepage}
+    \begin{center}
+        \vspace*{0.5cm}
+        
+        \large Project Report On
+        
+        \vspace{0.5cm}
+        
+        % Title
+        \textbf{\Huge spec3D: Spectre 3D Audio} \\
+        \vspace{0.2cm}
+        \textbf{\Huge Visualizer}
+        
+        \vspace{1.5cm}
+        
+        % Logo Placeholder (Replace 'logo.png' with your actual file)
+        % Using [demo] so it compiles without an actual image file for now
+        \includegraphics[width=4cm, height=4cm, keepaspectratio]{example-image-a} 
+        
+        \vspace{1.5cm}
+        
+        \large Submitted to \\
+        \textbf{Department of Computer Science and Engineering} \\
+        \textbf{[Your University Name]} % Placeholder based on reference
+        
+        \vspace{1.0cm}
+        
+        In Partial Fulfillment of [COMP XXX]: [Course Name] \\
+        Mini-Project Work
+        
+        \vspace{1.5cm}
+        
+        Submitted by: \\
+        \textbf{[Your Name] ([Roll No])} \\
+        \textbf{[Partner Name] ([Roll No])}
+        
+        \vspace{1.5cm}
+        
+        Submitted to: \\
+        \textbf{[Supervisor Name]} \\
+        Department of Computer Science and Engineering
+        
+        \vspace{1.0cm}
+        
+        \textbf{Submitted date: \today}
+        
+    \end{center}
+\end{titlepage}
+
+% =========================================================================
+% FRONT MATTER
+% =========================================================================
+\pagenumbering{roman} % Start Roman numbering (i, ii, iii...)
+
+% --- Abstract ---
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+\textbf{spec3D} is an advanced, interactive 3D audio visualization and analysis tool designed for both aesthetic experience and educational exploration of signal processing. Developed using \textbf{Three.js}, \textbf{TypeScript}, and \textbf{Vite}, the application bridges the gap between creative visualizers and technical analysis tools. 
+
+Unlike traditional 2D visualizers (like oscilloscopes or bar graphs) which provide limited perspectives, spec3D leverages modern web technologies to project signals into a 3D space. It features real-time spectral rendering, static 3D waveform generation, and a dedicated "Fourier Laboratory" for visualizing the mathematical decomposition of signals. This project leverages computer graphics techniques such as mesh optimization, buffer geometry, and real-time data visualization to create an engaging learning tool.
+
+\vspace{1cm}
+\noindent \textbf{\textit{Keywords:}} \textit{Computer Graphics, Audio Visualization, Three.js, Signal Processing, Fourier Transform, Web Audio API.}
+
+\newpage
+
+% --- Table of Contents ---
+\tableofcontents
+\newpage
+
+% --- List of Figures ---
+\listoffigures
+\addcontentsline{toc}{chapter}{List of Figures}
+\newpage
+
+% --- Abbreviations ---
+\chapter*{Abbreviations}
+\addcontentsline{toc}{chapter}{Abbreviations}
+
+\begin{tabbing}
+    \hspace{3cm} \= \kill
+    \textbf{API} \> Application Programming Interface \\
+    \textbf{FFT} \> Fast Fourier Transform \\
+    \textbf{HMR} \> Hot Module Replacement \\
+    \textbf{HSL} \> Hue, Saturation, Lightness \\
+    \textbf{JS} \> JavaScript \\
+    \textbf{TS} \> TypeScript \\
+    \textbf{UI} \> User Interface \\
+    \textbf{VR/AR} \> Virtual Reality / Augmented Reality \\
+    \textbf{3D} \> Three-Dimensional
+\end{tabbing}
+
+\newpage
+
+% =========================================================================
+% MAIN MATTER
+% =========================================================================
+\pagenumbering{arabic} % Start Arabic numbering (1, 2, 3...)
+
+% --- Chapter 1 ---
+\chapter{Introduction}
+
+\section{Background}
+Audio visualization is the transformation of auditory signals into visual representations, often used for artistic expression or data analysis. Traditional methods typically employ static tables or 2D graphs which fail to convey the dynamic, spatial nature of complex sound waves. With the advent of WebGL and powerful browser engines, it is now possible to render high-performance 3D graphics directly in the browser.
+
+\section{Problem Statement}
+In an academic setting, signal processing and Fourier Analysis are typically solved using complex mathematical equations. While this teaches the arithmetic behind the algorithms, it fails to capture the "flow" of frequency decomposition. Students often struggle to visualize how a complex signal is constructed from multiple sine waves or how a waveform looks in its entirety over time. Static diagrams cannot represent these temporal changes effectively.
+
+\section{Project Objectives}
+The primary objective of this project is to develop a visualization tool that bridges the gap between theoretical signal processing concepts and visual understanding. Specifically, we aim to:
+\begin{enumerate}
+    \item Implement a graphical simulation of audio spectrums using the Web Audio API and Three.js.
+    \item Apply Computer Graphics principles to animate frequency data and 3D meshes.
+    \item Provide an interactive "Fourier Laboratory" to visualize signal decomposition.
+    \item Create a static "Model Mode" to analyze the entire history of an audio track in 3D space.
+\end{enumerate}
+
+% --- Chapter 2 ---
+\chapter{System Analysis and Features}
+
+The visualizer is designed with user experience and educational clarity in mind. The following features distinguish it from standard media player visualizers.
+
+\section{Interactive Simulation Environment}
+The system runs in a continuous update loop, allowing for real-time interaction.
+\begin{itemize}
+    \item \textbf{Dynamic Controls:} Users can pause, play, and upload custom audio files.
+    \item \textbf{Parameter Tweaking:} Utilizing the \texttt{lil-gui} library, users can adjust visual parameters in real-time.
+\end{itemize}
+
+\section{Visual Metaphors}
+\begin{itemize}
+    \item \textbf{Spectral Rainbow:} Frequency bars are mapped to HSL colors, linking low frequencies to specific hues and high frequencies to others, reinforcing the concept of bandwidth.
+    \item \textbf{Physical Waveform:} In "Model Mode," the audio is treated as a physical terrain, allowing users to "walk through" the song's structure in 3D space.
+\end{itemize}
+
+\begin{figure}[h]
+    \centering
+    \fbox{\begin{minipage}{0.8\textwidth} \centering \vspace{3cm} [Snapshot of "3D Model" Mode: Waveform Terrain] \vspace{3cm} \end{minipage}}
+    \caption{Visual representation of an entire audio track as a 3D terrain mesh.}
+    \label{fig:model_mode}
+\end{figure}
+
+\section{Fourier Laboratory}
+The standout educational feature is the Fourier Lab. It visualizes the Fourier Transform by showing how a complex input signal (the "Signal Wall") is composed of multiple pure sine waves. It includes a moving analysis scanner that slices the 3D data along the time axis.
+
+\begin{figure}[h]
+    \centering
+    \fbox{\begin{minipage}{0.8\textwidth} \centering \vspace{3cm} [Snapshot of "Fourier Lab" Mode: Signal Decomposition] \vspace{3cm} \end{minipage}}
+    \caption{Fourier Lab showing the decomposition of a complex wave into constituent sine waves.}
+    \label{fig:fourier_lab}
+\end{figure}
+
+% --- Chapter 3 ---
+\chapter{Computer Graphics Concepts}
+
+This project serves as a practical application of concepts learned in Computer Graphics, moving beyond simple static drawing to handle dynamic state management and 3D rendering.
+
+\section{The Rendering Loop}
+The core of the application is the animation loop managed by \texttt{main.ts}. This function executes approximately 60 times per second, requesting the latest frequency data from the Audio Engine and updating the geometry of the meshes before rendering the scene.
+
+\section{Mathematical Foundation}
+
+\subsection{Discrete Fourier Transform (DFT)}
+The transition from the time domain to the frequency domain is governed by the Discrete Fourier Transform. For a sequence of $N$ complex numbers $x_0, x_1, \dots, x_{N-1}$, the DFT is defined by:
+\begin{equation}
+    X_k = \sum_{n=0}^{N-1} x_n \cdot e^{-\frac{i2\pi}{N}kn} \quad \text{for } k = 0, \dots, N-1
+\end{equation}
+In \textbf{spec3D}, the Web Audio API's \texttt{AnalyserNode} performs an optimized version of this (the Fast Fourier Transform or FFT) to extract magnitude data used for the visualization.
+
+\subsection{Data Mapping and Normalization}
+The raw frequency data (integers from 0 to 255) must be mapped to the 3D world height. This is achieved through a linear normalization and scaling function:
+\begin{equation}
+    f(v) = \left( \frac{v}{v_{max}} \right) \cdot H_{scale}
+\end{equation}
+Where $v$ is the byte value, $v_{max} = 255$, and $H_{scale}$ is a user-defined scaling factor in the Three.js coordinate system.
+
+\section{Coordinate Space Mapping}
+The application requires mapping logical data (frequency magnitudes and time) to physical screen space (3D world coordinates).
+\begin{itemize}
+    \item \textbf{Time to Z-Axis:} In the static model, the time domain is mapped along the Z-axis, creating a historical view of the audio.
+    \item \textbf{Projection:} To transform 3D coordinates $(x, y, z)$ onto the 2D screen, Three.js applies a Perspective Projection Matrix $P$:
+    \begin{equation}
+        \vec{v}_{screen} = P \cdot M_{view} \cdot M_{model} \cdot \vec{v}_{local}
+    \end{equation}
+    This ensures that objects further from the camera appear smaller, providing the depth necessary for the 3D experience.
+\end{itemize}
+
+\section{State-Driven Rendering}
+The graphics are decoupled from the logic. The \texttt{SceneManager} handles cameras and lighting, while specialized classes like \texttt{WaveformModel3D} handle specific visual outputs. This separation of concerns is fundamental to graphical software architecture.
+
+% --- Chapter 4 ---
+\chapter{Implementation Details}
+
+\section{Technology Stack}
+\begin{itemize}
+    \item \textbf{Language:} TypeScript (providing strict typing for robust data handling).
+    \item \textbf{Library:} Three.js (for WebGL rendering) and lil-gui (for UI).
+    \item \textbf{Audio Engine:} Web Audio API (for FFT analysis and decoding).
+    \item \textbf{Build Tool:} Vite (for HMR and efficient building).
+\end{itemize}
+
+\section{Application Overview}
+The application is structured into three main layers:
+\begin{enumerate}
+    \item \textbf{Core Management:} \texttt{SceneManager} initializes the environment (Lights, Camera, Renderer).
+    \item \textbf{Audio Engine:} \texttt{AudioController} processes uploads and exposes real-time data.
+    \item \textbf{Visualization Layer:} Classes like \texttt{Visualizer3D} and \texttt{FourierVisualizer} consume data and update meshes.
+\end{enumerate}
+
+\section{Visual Output}
+The primary challenge was managing the performance of thousands of 3D objects. This was solved by utilizing \textbf{BufferGeometry}, which allows massive datasets to be pushed to the GPU in a single draw call, rather than creating individual objects for every frequency bar.
+
+% Placeholder for a figure
+\begin{figure}[h]
+    \centering
+    % \includegraphics[width=0.8\textwidth]{snapshot.png} 
+    \fbox{\begin{minipage}{0.8\textwidth} \centering \vspace{3cm} [Snapshot of the Visualizer: 3D Spectrum View] \vspace{3cm} \end{minipage}}
+    \caption{Snapshot of spec3D active visualization showing circular frequency distribution.}
+    \label{fig:snapshot}
+\end{figure}
+
+% --- Chapter 5 ---
+\chapter{Conclusion}
+
+The \textbf{spec3D} Audio Visualizer successfully transforms the abstract mathematics of signal processing into a visual experience. By applying Computer Graphics techniques—specifically mesh generation, coordinate mapping, and the render loop—we have created a tool that makes audio data tangible.
+
+This project highlights the importance of visualization in education. It demonstrates that graphics programming is a powerful medium for simplifying complex logic and enhancing data comprehension. Future improvements could include support for VR/AR to allow for deeper immersion and multi-track analysis capabilities.
+
+\end{document}

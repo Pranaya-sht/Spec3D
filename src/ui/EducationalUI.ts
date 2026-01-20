@@ -13,6 +13,7 @@ export interface EducationalSettings {
     autoRotate: boolean;
     visualizationMode: 'realtime' | '3d-model' | 'fourier-view';
     waveformSpread: number;
+    showModelInFourier: boolean;
 }
 
 export class EducationalUI {
@@ -38,7 +39,8 @@ export class EducationalUI {
             radius: 10,
             autoRotate: true,
             visualizationMode: 'realtime',
-            waveformSpread: 1.0
+            waveformSpread: 1.0,
+            showModelInFourier: true
         };
 
         // Create GUI
@@ -83,6 +85,8 @@ export class EducationalUI {
                 else if (value === 'fourier-view') msg = 'FOURIER VIEW: 3D decomposition of waveform into sine waves';
                 this.updateInfo(msg);
             });
+        modeFolder.add(this.settings, 'showModelInFourier')
+            .name('Show Model in Fourier');
         modeFolder.open();
 
         // Waveform Spread Control
